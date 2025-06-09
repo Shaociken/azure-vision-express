@@ -16,9 +16,13 @@ const upload = multer({ dest: "uploads/" });
 const endpoint = process.env.VISION_ENDPOINT;
 const key = process.env.VISION_KEY;
 
+// 提供靜態檔案服務讓預覽圖片可讀取
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 // POST 上傳圖片並分析
 app.post("/analyze", upload.single("image"), async (req, res) => {
   const imagePath = req.file.path;
+  const imageUrl = `/uploads/${req.file.filename}`;
   const imageData = fs.readFileSync(imagePath);
 
   try {
@@ -50,6 +54,7 @@ app.post("/analyze", upload.single("image"), async (req, res) => {
         <div class="container mt-5">
           <h3 class="mb-4">🧾 分析結果</h3>
           <div class="card p-4 shadow">
+            <img src="${imageUrl}" alt="上傳圖片預覽" class="img-fluid mb-3 border rounded" style="max-height:300px">
             <p><strong>📋 自動說明：</strong> ${caption}</p>
             <p><strong>🏷️ 標籤：</strong> ${tags}</p>
             <p><strong>🎨 主要顏色：</strong> ${colors}</p>
@@ -62,7 +67,7 @@ app.post("/analyze", upload.single("image"), async (req, res) => {
   } catch (err) {
     res.status(500).send("❌ 分析失敗：" + (err.response?.data?.error?.message || err.message));
   } finally {
-    fs.unlinkSync(imagePath);
+    setTimeout(() => fs.unlink(imagePath, () => {}), 60000); // 保留 1 分鐘後刪除圖片
   }
 });
 
